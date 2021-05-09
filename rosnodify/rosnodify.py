@@ -9,7 +9,7 @@ from rclpy.exceptions import ParameterAlreadyDeclaredException
 
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 
-from utils import exception_t, assert_t
+from .utils import exception_t, assert_t
 
 
 class Type(Enum):
@@ -307,34 +307,3 @@ class Nodify(object):
 def node_init(args=None):
     rclpy.init(args=args)
     return Nodify()
-
-
-from std_msgs.msg import Bool
-
-
-rosnode = node_init()
-
-
-@rosnode.publisher(Bool, '/output')
-@rosnode.subscribe(Bool, '/test')
-def sub(msg: Bool):
-    rosnode.logger.info(f'{msg}')
-
-    @rosnode.connection_based()
-    def process():
-        return {'/output': msg}
-
-    # rosnode.publish(msg, '/output')
-
-
-# @rosnode
-def main():
-    return "test"
-
-
-rosnode.register(node_name='test')
-
-
-import IPython
-
-# IPython.embed()
