@@ -24,9 +24,12 @@ class Type(Enum):
 class Registry(object):
     is_lazy: bool = False
     parameters: dict = field(default_factory=dict)
+    timers: list = field(default_factory=list)
 
     def __post_init__(self):
         self.parameters = dict()
+        self.timers = []
+
         if self.is_lazy:
             self.sub_registry = []
             self.pub_registry = []
@@ -181,10 +184,9 @@ class Nodify(object):
     @classmethod
     def timer(cls, timer_period: float):
         assert isinstance(timer_period, float)
-
         def wrapper(func):
             assert callable(func)
-            # TODO: timer
+            lazy_registry.timers.append([timer_period, func])
             return func
 
         return wrapper
@@ -240,6 +242,7 @@ class Nodify(object):
             timeout = args.pop('timeout')
             client = self._node.create_client(**args)
             while not client.wait_for_service(timeout_sec=timeout):
+                srv_name = args['srv_name']
                 self.logger.warn(
                     f'Service {srv_name} not available, waiting...'
                 )
@@ -252,15 +255,23 @@ class Nodify(object):
             params = dict(topic=args['topic'], handle=srv)
             self._registry(Type.SERVER, **params)
 
-    """
-    def hook(self, *args, **kwargs):
-        print(args, kwargs)
-        def wrapper(func):
-            self._hook()
-            func()
-            return func
-        return wrapper
-    """
+        for args in lazy_registry.timers:
+            timer = self._node.create_timer(*args)
+            self._registry.timers.append(timer)
+
+        for param_name, param_value in lazy_registry.parameters.items():
+            self.create_param(param_name, param_value)
+
+    @exception_t(error=ParameterAlreadyDeclaredException)
+    def create_param(self, param_name: str, param_value):
+        assert self._node.declare_parameter(
+            param_name, param_value
+        )
+
+    def get_parameter(self, param_name: str):
+        param = self._node.get_parameter(param_name).get_parameter_value()
+        ptype = list(param.get_fields_and_field_types().keys())[param.type]
+        return getattr(param, ptype)
 
     @exception_t(error=KeyboardInterrupt)
     def spin(self, once: bool = False):
