@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from threading import Lock
 from enum import Enum, auto
 
 import rclpy
 from rclpy.exceptions import ParameterAlreadyDeclaredException
+
+from message_filters import ApproximateTimeSynchronizer, Subscriber
 
 from utils import exception_t, assert_t
 
@@ -15,13 +17,16 @@ class Type(Enum):
     PUB = auto()
     CLIENT = auto()
     SERVER = auto()
+    PARAM = auto()
 
 
 @dataclass(init=True)
 class Registry(object):
     is_lazy: bool = False
+    parameters: dict = field(default_factory=dict)
 
     def __post_init__(self):
+        self.parameters = dict()
         if self.is_lazy:
             self.sub_registry = []
             self.pub_registry = []
@@ -82,6 +87,7 @@ class Nodify(object):
         if self._has_init:
             raise Exception('The node was already initialized')
 
+        assert isinstance(node_name, str)
         self._node = rclpy.create_node(node_name, **kwargs)
         self._registry = Registry(is_lazy=False)
         self._has_init = True
@@ -160,11 +166,14 @@ class Nodify(object):
         return wrapper
 
     @classmethod
-    def parameters(cls, parameters: list):
-        @exception_t(error=ParameterAlreadyDeclaredException)
+    def parameters(cls, params: list):
+        assert isinstance(params, (list, tuple, dict))
+
         def wrapper(func):
-            # TODO: parameters in registry and hook
-            lazy_registry.parameters.extend(parameters)
+            param_dict = params if isinstance(params, dict) else {}
+            if isinstance(params, (list, tuple)):
+                param_dict = {key: value for key, value in params}
+            lazy_registry.parameters.update(param_dict)
             return func
 
         return wrapper
@@ -176,6 +185,22 @@ class Nodify(object):
         def wrapper(func):
             assert callable(func)
             # TODO: timer
+            return func
+
+        return wrapper
+
+    def approx_time_sync(self, msg_topic_list: list, **kwargs: dict):
+        assert isinstance(msg_topic_list, (tuple, list))
+
+        def wrapper(func):
+            assert callable(func)
+            ApproximateTimeSynchronizer(
+                [
+                    Subscriber(self._node, *msg_topic)
+                    for msg_topic in msg_topic_list
+                ],
+                **kwargs,
+            ).registerCallback(func)
             return func
 
         return wrapper
@@ -245,8 +270,23 @@ class Nodify(object):
         while rclpy.ok():
             rclpy.spin(self._node)
 
-    def register(self, *args, **kwargs):
+    def register(self, *, node_name: str = None, **kwargs):
+        if self._has_init and node_name is not None:
+            self.logger.warn(
+                f'The node was already initialized by name {self._node.get_name()} '
+                f'The given name {node_name} will be ignored'
+            )
+
+        if not self._has_init:
+            if node_name is None:
+                raise ValueError(
+                    'Node was not initalized. Node name is required'
+                )
+            else:
+                self.create_node(node_name)
+
         self._hook()
+
         once = kwargs.get('spin_once', False)
         self.spin(once=once)
 
@@ -287,12 +327,12 @@ def sub(msg: Bool):
     # rosnode.publish(msg, '/output')
 
 
-@rosnode
+# @rosnode
 def main():
     return "test"
 
 
-rosnode.register(spin_once=False)
+rosnode.register(node_name='test')
 
 
 import IPython
