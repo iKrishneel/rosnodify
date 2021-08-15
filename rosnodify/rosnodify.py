@@ -184,6 +184,7 @@ class Nodify(object):
     @classmethod
     def timer(cls, timer_period: float):
         assert isinstance(timer_period, float)
+
         def wrapper(func):
             assert callable(func)
             lazy_registry.timers.append([timer_period, func])
@@ -264,9 +265,7 @@ class Nodify(object):
 
     @exception_t(error=ParameterAlreadyDeclaredException)
     def create_param(self, param_name: str, param_value):
-        assert self._node.declare_parameter(
-            param_name, param_value
-        )
+        assert self._node.declare_parameter(param_name, param_value)
 
     def get_parameter(self, param_name: str):
         param = self._node.get_parameter(param_name).get_parameter_value()
@@ -280,6 +279,16 @@ class Nodify(object):
             return
         while rclpy.ok():
             rclpy.spin(self._node)
+
+    def main(self, args=None):
+        def wrapper(func):
+            self._main_func = func
+            return func
+
+        if callable(args):
+            return wrapper(args)
+        else:
+            return wrapper
 
     def register(self, *, node_name: str = None, **kwargs):
         if self._has_init and node_name is not None:
@@ -298,6 +307,9 @@ class Nodify(object):
 
         self._hook()
 
+        if self._main_func is not None:
+            self._main_func()
+
         once = kwargs.get('spin_once', False)
         self.spin(once=once)
 
@@ -313,6 +325,10 @@ class Nodify(object):
     @property
     def logger(self):
         return self._node.get_logger()
+
+    @property
+    def clock_now(self):
+        return self._node.get_clock().now()
 
 
 def node_init(args=None):
