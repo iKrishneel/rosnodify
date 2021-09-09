@@ -212,9 +212,9 @@ class Nodify(object):
         def wrapper(func):
             assert callable(func)
             msgs_dict = func()
-            assert isinstance(msgs_dict, dict)
-            for topic, msg in msgs_dict.items():
-                self.publish(msg, topic, check_connection=True)
+            if isinstance(msgs_dict, dict):
+                for topic, msg in msgs_dict.items():
+                    self.publish(msg, topic, check_connection=True)
             return func
 
         return wrapper
@@ -222,7 +222,9 @@ class Nodify(object):
     def publish(self, msg, topic: str, check_connection: bool = True):
         pub = self.get_publisher(topic=topic)
         if check_connection and pub.get_subscription_count() == 0:
-            self.logger.info(f'Publish {topic} has no subscription')
+            self.logger.info(
+                f'Publish {topic} has no subscription', throttle_duration_sec=5
+            )
             return
         pub.publish(msg)
 
