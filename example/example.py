@@ -1,27 +1,30 @@
 #!/usr/bin/env python
 
-from std_msgs.msg import Bool
+from datetime import datetime
+from std_msgs.msg import String
 
 from rosnodify import rosnode
 
 
 @rosnode.parameters({'my_param': True})
 @rosnode.parameters([('your_param', 1)])
-@rosnode.publisher(Bool, '/output')
-@rosnode.subscribe(Bool, '/test')
-def sub(msg: Bool):
+@rosnode.publisher(String, '/output')
+@rosnode.subscribe(String, '/param')
+def sub(msg: String):
     rosnode.logger.info(f'{msg}')
 
-    @rosnode.connection_based()
+    @rosnode.connection_based
     def process():
         return {'/output': msg}
 
 
-@rosnode.publisher(Bool, '/param')
+@rosnode.publisher(String, '/param')
 @rosnode.timer(0.5)
 def timer():
-    msg = Bool(data=rosnode.get_parameter('my_param'))
-    rosnode.publish(msg, '/param', False)
+    now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    param = rosnode.get_parameter('my_param')
+    msg = f'{now}: my_param: {param}'
+    rosnode.publish(String(data=msg), '/param', False)
 
 
 rosnode.register(node_name='test')

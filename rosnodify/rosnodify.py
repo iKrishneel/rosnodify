@@ -12,6 +12,11 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 from .utils import exception_t, assert_t
 
 
+__all__ = [
+    'Nodify',
+]
+
+
 class Type(Enum):
     SUB = auto()
     PUB = auto()
@@ -69,6 +74,7 @@ lazy_registry = Registry(is_lazy=True)
 class Nodify(object):
 
     _has_init: bool = False
+    _main_func = None
 
     def __call__(self, arg, **kwargs: dict):
         if callable(arg):
@@ -208,7 +214,7 @@ class Nodify(object):
 
         return wrapper
 
-    def connection_based(self):
+    def connection_based(self, args=None):
         def wrapper(func):
             assert callable(func)
             msgs_dict = func()
@@ -217,7 +223,7 @@ class Nodify(object):
                     self.publish(msg, topic, check_connection=True)
             return func
 
-        return wrapper
+        return wrapper(args) if args else wrapper
 
     def publish(self, msg, topic: str, check_connection: bool = True):
         pub = self.get_publisher(topic=topic)
@@ -309,7 +315,7 @@ class Nodify(object):
 
         self._hook()
 
-        if self._main_func is not None:
+        if self._main_func:
             self._main_func()
 
         once = kwargs.get('spin_once', False)
