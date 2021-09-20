@@ -214,7 +214,7 @@ class Nodify(object):
 
         return wrapper
 
-    def connection_based(self, args=None):
+    def connection_based(self, func_or_cls=None):
         def wrapper(func):
             assert callable(func)
             msgs_dict = func()
@@ -223,7 +223,7 @@ class Nodify(object):
                     self.publish(msg, topic, check_connection=True)
             return func
 
-        return wrapper(args) if args else wrapper
+        return wrapper(func_or_cls) if func_or_cls else wrapper
 
     def publish(self, msg, topic: str, check_connection: bool = True):
         pub = self.get_publisher(topic=topic)
@@ -233,6 +233,29 @@ class Nodify(object):
             )
             return
         pub.publish(msg)
+
+    def filter_buffer(self, header, **kwargs):
+        def wrapper(func):
+            return func if self._is_msg_time_valid(header, **kwargs) else None
+
+        return wrapper
+
+    def _is_msg_time_valid(self, header, time_diff: float = None):
+        time_diff = time_diff if time_diff else self.get_parameter('time_diff')
+        if time_diff < 0.0:
+            return True
+
+        try:
+            msg_time = rclpy.time.Time.from_msg(header.stamp)
+            duration = rclpy.duration.Duration(seconds=time_diff)
+            if (self.clock_now - msg_time) > duration:
+                raise ValueError(f'Obselete message: {header.stamp}')
+        except ValueError as e:
+            self.logger.warn(f'{e}', throttle_duration_sec=max(time_diff, 0.5))
+            return False
+        except AttributeError as e:
+            self.logger.info(f'{e}', once=True)
+        return True
 
     def _hook(self):
         for args in lazy_registry.sub_registry:
