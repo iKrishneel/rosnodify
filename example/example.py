@@ -1,30 +1,30 @@
 #!/usr/bin/env python
 
-from datetime import datetime
-from std_msgs.msg import String
+from std_msgs.msg import Header
+from geometry_msgs.msg import PointStamped
 
 from rosnodify import rosnode
 
 
-@rosnode.parameters({'my_param': True})
+@rosnode.parameters({'my_param': True, 'time_diff': 1e-1})
 @rosnode.parameters([('your_param', 1)])
-@rosnode.publisher(String, '/output')
-@rosnode.subscribe(String, '/param')
-def sub(msg: String):
-    rosnode.logger.info(f'{msg}')
-
+@rosnode.publisher(PointStamped, '/output')
+@rosnode.subscribe(PointStamped, '/param')
+def sub(msg: PointStamped):
     @rosnode.connection_based
+    @rosnode.filter_buffer(msg.header)
     def process():
         return {'/output': msg}
 
 
-@rosnode.publisher(String, '/param')
+@rosnode.publisher(PointStamped, '/param')
 @rosnode.timer(0.5)
 def timer():
-    now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
     param = rosnode.get_parameter('my_param')
-    msg = f'{now}: my_param: {param}'
-    rosnode.publish(String(data=msg), '/param', False)
+    header = Header(frame_id='', stamp=rosnode.clock_now.to_msg())
+    point = PointStamped(header=header)
+    point.point.x = 0.1 if param else 0.5
+    rosnode.publish(point, '/param')
 
 
 rosnode.register(node_name='test')
