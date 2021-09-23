@@ -246,12 +246,19 @@ class Nodify(object):
             return True
 
         try:
+            bridge_time = rclpy.duration.Duration(seconds=0.0)
+            now = self.clock_now - bridge_time
             msg_time = rclpy.time.Time.from_msg(header.stamp)
             duration = rclpy.duration.Duration(seconds=time_diff)
-            if (self.clock_now - msg_time) > duration:
-                raise ValueError(f'Obselete message: {header.stamp}')
+
+            if (now - msg_time) > duration:
+                d = (now - msg_time).nanoseconds / 1E9
+                c = duration.nanoseconds / 1E9
+                raise ValueError(
+                    f'\nObselete message: {d} and diff should be: {c}'
+                )
         except ValueError as e:
-            self.logger.warn(f'{e}', throttle_duration_sec=max(time_diff, 0.5))
+            self.logger.warn(f'{e}', throttle_duration_sec=max(time_diff, 2.0))
             return False
         except AttributeError as e:
             self.logger.info(f'{e}', once=True)
