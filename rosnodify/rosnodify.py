@@ -240,6 +240,21 @@ class Nodify(object):
 
         return wrapper
 
+    def timeit(self, func, once: bool = True, throttle: int = None):
+
+        def _wrapper(*args, **kwargs):
+            start = self.clock_now
+            result = func(*args, **kwargs)
+            ptime = (self.clock_now - start).nanoseconds / 1E9
+            self.logger.info(
+                f'Processing time: {ptime}',
+                once=once,
+                throttle_duration_sec=throttle,
+            )
+            return result
+
+        return _wrapper
+
     def _is_msg_time_valid(self, header, time_diff: float = None):
         time_diff = time_diff if time_diff else self.get_parameter('time_diff')
         if time_diff < 0.0:
