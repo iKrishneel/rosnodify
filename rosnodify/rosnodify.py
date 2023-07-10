@@ -156,7 +156,7 @@ class Nodify(object):
         return wrapper
 
     @classmethod
-    def serivce(cls, srv_type, srv_name: str, **kwargs: dict):
+    def service(cls, srv_type, srv_name: str, **kwargs: dict):
         assert isinstance(srv_name, str) and callable(srv_type)
         timeout = kwargs.get('timeout', 5.0)
 
