@@ -3,6 +3,8 @@
 from std_msgs.msg import Header
 from geometry_msgs.msg import PointStamped
 
+from rcl_interfaces.srv import SetParameters
+
 from rosnodify import rosnode
 
 
@@ -17,9 +19,18 @@ def sub(msg: PointStamped):
         return {'/output': msg}
 
 
+@rosnode.client(SetParameters, '/my_param_srv')
+@rosnode.service(SetParameters, '/my_param_srv')    
+def service(*args, **kwargs):
+    pass
+
+
 @rosnode.publisher(PointStamped, '/param')
 @rosnode.timer(0.5)
 def timer():
+
+    import IPython; IPython.embed()
+    
     param = rosnode.get_parameter('my_param')
     header = Header(frame_id='', stamp=rosnode.clock_now.to_msg())
     point = PointStamped(header=header)

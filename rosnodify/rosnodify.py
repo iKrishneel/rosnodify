@@ -53,6 +53,8 @@ class Registry(object):
             _registry = self.pub_registry
         elif _type == Type.CLIENT:
             _registry = self.client_registry
+        elif _type == Type.SERVER:
+            _registry = self.srv_registry
         else:
             raise TypeError(f'Unknown Type {_type}')
 
@@ -125,7 +127,6 @@ class Nodify(object):
 
         return wrapper
 
-    # @assert_t('topic', str)
     @classmethod
     def publisher(cls, msg_type, topic: str, qos: int = 1, **kwargs: dict):
         assert callable(msg_type)
@@ -150,7 +151,7 @@ class Nodify(object):
             args = dict(
                 srv_type=srv_type, srv_name=srv_name, timeout=timeout, **kwargs
             )
-            lazy_registry.client_registry(Type.CLIENT, **args)
+            lazy_registry(Type.CLIENT, **args)
             return func
 
         return wrapper
@@ -158,7 +159,7 @@ class Nodify(object):
     @classmethod
     def service(cls, srv_type, srv_name: str, **kwargs: dict):
         assert isinstance(srv_name, str) and callable(srv_type)
-        timeout = kwargs.get('timeout', 5.0)
+        # timeout = kwargs.get('timeout', 5.0)
 
         def wrapper(func):
             assert callable(func)
@@ -166,10 +167,10 @@ class Nodify(object):
                 srv_type=srv_type,
                 srv_name=srv_name,
                 callback=func,
-                timeout=timeout,
+                # timeout=timeout,
                 **kwargs,
             )
-            lazy_registry.srv_registry(Type.SERVER, **args)
+            lazy_registry(Type.SERVER, **args)
             return func
 
         return wrapper
@@ -292,6 +293,11 @@ class Nodify(object):
             )
             self._registry(Type.PUB, **params)
 
+        for args in lazy_registry.srv_registry:
+            srv = self._node.create_service(**args)
+            params = dict(topic=args['srv_name'], handle=srv)
+            self._registry(Type.SERVER, **params)
+
         for args in lazy_registry.client_registry:
             timeout = args.pop('timeout')
             client = self._node.create_client(**args)
@@ -300,14 +306,8 @@ class Nodify(object):
                 self.logger.warn(
                     f'Service {srv_name} not available, waiting...'
                 )
-            params = dict(topic=args['topic'], handle=client)
+            params = dict(topic=args['srv_name'], handle=client)
             self._registry(Type.CLIENT, **params)
-
-        for args in lazy_registry.srv_registry:
-            timeout = args.pop('timeout')
-            srv = self._node.create_service(**args)
-            params = dict(topic=args['topic'], handle=srv)
-            self._registry(Type.SERVER, **params)
 
         for args in lazy_registry.timers:
             timer = self._node.create_timer(*args)
