@@ -159,7 +159,6 @@ class Nodify(object):
     @classmethod
     def service(cls, srv_type, srv_name: str, **kwargs: dict):
         assert isinstance(srv_name, str) and callable(srv_type)
-        # timeout = kwargs.get('timeout', 5.0)
 
         def wrapper(func):
             assert callable(func)
@@ -167,7 +166,6 @@ class Nodify(object):
                 srv_type=srv_type,
                 srv_name=srv_name,
                 callback=func,
-                # timeout=timeout,
                 **kwargs,
             )
             lazy_registry(Type.SERVER, **args)
@@ -324,6 +322,18 @@ class Nodify(object):
         param = self._node.get_parameter(param_name).get_parameter_value()
         ptype = list(param.get_fields_and_field_types().keys())[param.type]
         return getattr(param, ptype)
+
+    def get_client(self, srv_name: str):
+        assert srv_name in self._registry.client_registry, f'{srv_name} not yet registed'
+        return self._registry.client_registry[srv_name]
+
+    def call_async(self, request, srv_name: str, wait: bool = False, timeout: float = None):
+        client = self.get_client(srv_name)
+        future = client.call_async(request)
+        if wait:
+            rclpy.spin_until_future_complete(self._node, future, timeout_sec=timeout)
+            return future.result()
+        return future
 
     @exception_t(error=KeyboardInterrupt)
     def spin(self, once: bool = False):
