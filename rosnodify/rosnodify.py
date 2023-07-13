@@ -105,7 +105,7 @@ class Nodify(object):
 
     def create_subscriber(self, **kwargs):
         try:
-            self._node.create_subscription(**kwargs)
+            return self._node.create_subscription(**kwargs)
         except (TypeError, AttributeError) as e:
             print(e)
 
@@ -376,8 +376,8 @@ class Nodify(object):
         once = kwargs.get('spin_once', False)
         self.spin(once=once)
 
-    @exception_t(error=KeyError)
-    @assert_t(obj=str)
+    # @exception_t(error=KeyError)
+    # @assert_t(obj=str)
     def get_subscriber(self, topic: str):
         return self._registry.sub_registry[topic]
 
