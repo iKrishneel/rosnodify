@@ -332,7 +332,8 @@ class Nodify(object):
         future = client.call_async(request)
         if wait:
             rclpy.spin_until_future_complete(self._node, future, timeout_sec=timeout)
-        return future.result()
+            return future.result()
+        return future
 
     @exception_t(error=KeyboardInterrupt)
     def spin(self, once: bool = False):
