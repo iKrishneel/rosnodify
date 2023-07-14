@@ -144,7 +144,7 @@ class Nodify(object):
     @classmethod
     def client(cls, srv_type, srv_name: str, **kwargs: dict):
         assert isinstance(srv_name, str) and callable(srv_type)
-        timeout = kwargs.get('timeout', 5.0)
+        timeout = kwargs.pop('timeout', 5.0)
 
         def wrapper(func):
             assert callable(func)
@@ -329,15 +329,31 @@ class Nodify(object):
 
     def call_async(self, request, srv_name: str, wait: bool = False, timeout: float = None):
         client = self.get_client(srv_name)
+        service_avail = client.wait_for_service(timeout_sec=timeout)
+        if not service_avail:
+            print("Service not available")
+            return
+        else:
+            print("Got service, continuing")
+
         future = client.call_async(request)
-        if wait:
-            rclpy.spin_until_future_complete(self._node, future, timeout_sec=timeout)
-            return future.result()
-        return future
+        print("Spin until future complete")
+        rclpy.spin_until_future_complete(self._node, future, timeout_sec=timeout)
+        """
+        while rclpy.ok():
+            print("Going to spin once")
+            rclpy.spin_once(self._node)
+            print("Spin once")
+            if future.done():
+                result = future.result()
+                print(result)
+        """
+        return future.result()
 
     @exception_t(error=KeyboardInterrupt)
     def spin(self, once: bool = False):
         if once:
+            print("Spinning once")
             rclpy.spin_once(self._node)
             return
         while rclpy.ok():
@@ -374,7 +390,7 @@ class Nodify(object):
             self._main_func()
 
         once = kwargs.get('spin_once', False)
-        self.spin(once=once)
+        # self.spin(once=once)
 
     # @exception_t(error=KeyError)
     # @assert_t(obj=str)

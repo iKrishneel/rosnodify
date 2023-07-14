@@ -19,21 +19,16 @@ from rosnodify import rosnode
 
 srv_name = '/two_ints'
 
-@rosnode.client(AddTwoInts, srv_name)
+
+@rosnode.publisher(PointStamped, '/param')
 @rosnode.service(AddTwoInts, srv_name)
 def service(request, response):
+    rosnode.logger.info("Got service call")
     response.sum = request.a + request.b
+    rosnode.logger.info(f"Responding with {response}")
     return response
 
 
-@rosnode.publisher(PointStamped, '/param')
-@rosnode.timer(0.5)
-def timer():
-    a, b = 1, 2
-    request = AddTwoInts.Request(a=a, b=b)
-    result = rosnode.call_async(request, srv_name, True)
-    
-    rosnode.logger.warn(f"Sum of {a} + {b} = {result.result()}")
 
 
 rosnode.register(node_name='test_srv')
