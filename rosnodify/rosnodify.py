@@ -144,7 +144,7 @@ class Nodify(object):
     @classmethod
     def client(cls, srv_type, srv_name: str, **kwargs: dict):
         assert isinstance(srv_name, str) and callable(srv_type)
-        timeout = kwargs.get('timeout', 5.0)
+        timeout = kwargs.pop('timeout', 5.0)
 
         def wrapper(func):
             assert callable(func)
@@ -373,8 +373,10 @@ class Nodify(object):
         if self._main_func:
             self._main_func()
 
+        do_spin = kwargs.get('do_spin', True)
         once = kwargs.get('spin_once', False)
-        self.spin(once=once)
+        if do_spin:
+            self.spin(once=once)
 
     # @exception_t(error=KeyError)
     # @assert_t(obj=str)

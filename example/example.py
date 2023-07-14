@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-from std_msgs.msg import Header
 from geometry_msgs.msg import PointStamped
-
 from rosnodify import rosnode
+from std_msgs.msg import Header
 
 
 @rosnode.parameters({'my_param': True, 'time_diff': 1e-1})
