@@ -329,31 +329,14 @@ class Nodify(object):
 
     def call_async(self, request, srv_name: str, wait: bool = False, timeout: float = None):
         client = self.get_client(srv_name)
-        service_avail = client.wait_for_service(timeout_sec=timeout)
-        if not service_avail:
-            print("Service not available")
-            return
-        else:
-            print("Got service, continuing")
-
         future = client.call_async(request)
-        print("Spin until future complete")
-        rclpy.spin_until_future_complete(self._node, future, timeout_sec=timeout)
-        """
-        while rclpy.ok():
-            print("Going to spin once")
-            rclpy.spin_once(self._node)
-            print("Spin once")
-            if future.done():
-                result = future.result()
-                print(result)
-        """
+        if wait:
+            rclpy.spin_until_future_complete(self._node, future, timeout_sec=timeout)
         return future.result()
 
     @exception_t(error=KeyboardInterrupt)
     def spin(self, once: bool = False):
         if once:
-            print("Spinning once")
             rclpy.spin_once(self._node)
             return
         while rclpy.ok():
@@ -389,8 +372,10 @@ class Nodify(object):
         if self._main_func:
             self._main_func()
 
+        do_spin = kwargs.get('do_spin', True)
         once = kwargs.get('spin_once', False)
-        # self.spin(once=once)
+        if do_spin:
+            self.spin(once=once)
 
     # @exception_t(error=KeyError)
     # @assert_t(obj=str)

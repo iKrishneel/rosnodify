@@ -1,12 +1,11 @@
 import sys
 
-from example_interfaces.srv import AddTwoInts
 import rclpy
+from example_interfaces.srv import AddTwoInts
 from rclpy.node import Node
 
 
 class MinimalClientAsync(Node):
-
     def __init__(self):
         super().__init__('minimal_client_async')
         self.cli = self.create_client(AddTwoInts, '/two_ints')
@@ -28,8 +27,8 @@ def main():
     minimal_client = MinimalClientAsync()
     response = minimal_client.send_request(int(sys.argv[1]), int(sys.argv[2]))
     minimal_client.get_logger().info(
-        'Result of add_two_ints: for %d + %d = %d' %
-        (int(sys.argv[1]), int(sys.argv[2]), response.sum))
+        'Result of add_two_ints: for %d + %d = %d' % (int(sys.argv[1]), int(sys.argv[2]), response.sum)
+    )
 
     minimal_client.destroy_node()
     rclpy.shutdown()
@@ -37,4 +36,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

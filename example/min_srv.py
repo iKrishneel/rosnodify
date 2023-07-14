@@ -1,11 +1,9 @@
-from example_interfaces.srv import AddTwoInts
-
 import rclpy
+from example_interfaces.srv import AddTwoInts
 from rclpy.node import Node
 
 
 class MinimalService(Node):
-
     def __init__(self):
         super().__init__('minimal_service')
         self.srv = self.create_service(AddTwoInts, '/two_ints', self.add_two_ints_callback)
@@ -30,4 +28,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
