@@ -94,6 +94,9 @@ class Nodify(object):
 
         return _register(arg)
 
+    def __getattr__(self, attr):
+        return getattr(self._node, attr)
+
     def create_node(self, node_name: str, **kwargs: dict):
         if self._has_init:
             raise Exception('The node was already initialized')
